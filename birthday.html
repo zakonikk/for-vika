@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Для Тебя ❤️</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; }
+        
+        /* Стили терминала */
+        #terminal {
+            position: absolute; width: 100%; height: 100%;
+            background: black; color: white; padding: 40px;
+            z-index: 200; display: flex; flex-direction: column;
+            box-sizing: border-box; font-size: 22px;
+            transition: opacity 1.5s ease-in-out;
+        }
+        
+        #ui {
+            position: absolute; top: 5%; width: 100%; text-align: center;
+            color: white; font-size: 24px; text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+            z-index: 10; display: none; pointer-events: none;
+        }
+        .hidden { opacity: 0; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+<div id="terminal"></div>
+
+<div id="ui">Нажми ПРОБЕЛ, чтобы задуть свечу</div>
+
+<script type="module">
+    import * as THREE from 'https://cdn.skypack.dev/three@0.132.2';
+    import { OrbitControls } from 'https://cdn.skypack.dev/three@0.132.2/examples/jsm/controls/OrbitControls.js';
+
+    const term = document.getElementById('terminal');
+    const messages = [
+        "> Вика",
+        "> ...",
+        "> сегодня твой день рождения",
+        "> ...",
+        "> поэтому я написал для тебя эту программу...",
+        "ЗАГРУЗКА [██████████████] 100%"
+    ];
+
+    // 1. Функция печатной машинки
+    async function typeText() {
+        for (let msg of messages) {
+            let p = document.createElement('p');
+            term.appendChild(p);
+            for (let char of msg) {
+                p.textContent += char;
+                await new Promise(r => setTimeout(r, 60));
+            }
+            await new Promise(r => setTimeout(r, 1000));
+        }
+        
+        // Плавно скрываем терминал
+        term.classList.add('hidden');
+        setTimeout(() => {
+            term.style.display = 'none';
+            document.getElementById('ui').style.display = 'block';
+            init3D();
+        }, 1500);
+    }
+
+    typeText();
+
+    // 2. Основная 3D сцена
+    function init3D() {
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        const loader = new THREE.TextureLoader();
+        loader.load('city.jpg', (tex) => { scene.background = tex; });
+
+        // Клетчатая текстура для скатерти
+        const canvas = document.createElement('canvas');
+        canvas.width = 256; canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        for (let i = 0; i < 4; i++) {
+            for (let j = 0; j < 4; j++) {
+                ctx.fillStyle = (i + j) % 2 === 0 ? '#ffffff' : '#ff4d4d';
+                ctx.fillRect(i * 64, j * 64, 64, 64);
+            }
+        }
+        const checkerTexture = new THREE.CanvasTexture(canvas);
+        checkerTexture.wrapS = checkerTexture.wrapT = THREE.RepeatWrapping;
+        checkerTexture.repeat.set(8, 3);
+
+        const ambient = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambient);
+        const pointLight = new THREE.PointLight(0xffaa00, 2.5, 60);
+        pointLight.position.set(0, 10, 0);
+        scene.add(pointLight);
+
+        // --- СТОЛ ---
+        const tableGroup = new THREE.Group();
+        const tableMat = new THREE.MeshStandardMaterial({ color: 0x4b2d0b });
+        const tableTop = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 0.4, 64), tableMat);
+        
+        const cloth = new THREE.Mesh(
+            new THREE.CylinderGeometry(9.1, 9.6, 4, 64, 1, true),
+            new THREE.MeshStandardMaterial({ map: checkerTexture, side: THREE.DoubleSide })
+        );
+        cloth.position.y = -2;
+        
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.8, 12, 32), tableMat);
+        leg.position.y = -6.2;
+        tableGroup.add(tableTop, cloth, leg);
+        scene.add(tableGroup);
+
+        // --- ТОРТ ---
+        const cakeGroup = new THREE.Group();
+        cakeGroup.position.y = 0.2;
+
+        function createTier(r, h, y, cakeCol, icingCol) {
+            const g = new THREE.Group();
+            const base = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 40), new THREE.MeshStandardMaterial({color: cakeCol}));
+            base.position.y = y;
+            const icing = new THREE.Mesh(new THREE.CylinderGeometry(r + 0.05, r + 0.05, h * 0.2, 40), new THREE.MeshStandardMaterial({color: icingCol}));
+            icing.position.y = y + h/2;
+            g.add(base, icing);
+            return g;
+        }
+
+        cakeGroup.add(createTier(2.5, 1.2, 0.6, 0xfff5e1, 0xff69b4)); 
+        cakeGroup.add(createTier(1.8, 1.0, 1.7, 0xffe4e1, 0xffffff)); 
+        cakeGroup.add(createTier(1.2, 0.8, 2.6, 0xffffff, 0xff69b4)); 
+
+        // Декор торта
+        for(let i=0; i<15; i++) {
+            const berry = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), new THREE.MeshStandardMaterial({color: 0x191970}));
+            const a = (i/15) * Math.PI * 2;
+            berry.position.set(Math.cos(a)*1.6, 2.2, Math.sin(a)*1.6);
+            cakeGroup.add(berry);
+        }
+        for(let i=0; i<8; i++) {
+            const berry = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), new THREE.MeshStandardMaterial({color: 0xff0000}));
+            const a = (i/8) * Math.PI * 2;
+            berry.position.set(Math.cos(a)*1, 3.1, Math.sin(a)*1);
+            cakeGroup.add(berry);
+        }
+        for(let i=0; i<10; i++){
+            const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.2), new THREE.MeshStandardMaterial({color: 0x4b2d0b}));
+            const a = (i/10) * Math.PI * 2;
+            stick.position.set(Math.cos(a)*0.6, 3.4, Math.sin(a)*0.6);
+            stick.rotation.z = 0.3;
+            cakeGroup.add(stick);
+        }
+
+        const candle = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.8), new THREE.MeshStandardMaterial({color: 0x33ccff}));
+        candle.position.y = 3.5;
+        cakeGroup.add(candle);
+
+        const flame = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 12), new THREE.MeshBasicMaterial({color: 0xffaa00}));
+        flame.position.y = 4.0;
+        cakeGroup.add(flame);
+        scene.add(cakeGroup);
+
+        // --- ФОТО-РАМКИ ---
+        const photoFiles = ['image1.jpg', 'image2.jpg', 'image3.jpg', 'image4.jpg'];
+        photoFiles.forEach((file, i) => {
+            const frameGroup = new THREE.Group();
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(3.5, 4.8, 0.2), new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.7, roughness: 0.2 }));
+            const photo = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 4.5), new THREE.MeshStandardMaterial({ map: loader.load(file) }));
+            photo.position.z = 0.11;
+            frameGroup.add(frame, photo);
+
+            const angle = (i / 4) * Math.PI * 2;
+            const radius = 6.8; 
+            frameGroup.position.set(Math.cos(angle) * radius, 2.4, Math.sin(angle) * radius);
+            frameGroup.lookAt(0, 2.4, 0);
+            scene.add(frameGroup);
+        });
+
+        camera.position.set(0, 10, 22);
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 3, 0);
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.6;
+        controls.enableDamping = true;
+
+        // --- ЛЕПЕСТКИ РОЗ ---
+        const petals = [];
+        const petalGeo = new THREE.PlaneGeometry(0.3, 0.3);
+        const petalMat = new THREE.MeshStandardMaterial({color: 0xff0055, side: THREE.DoubleSide, transparent: true, opacity: 0.9});
+
+        function spawnPetals() {
+            for(let i=0; i<150; i++) {
+                const p = new THREE.Mesh(petalGeo, petalMat);
+                p.position.set(Math.random()*40-20, Math.random()*25+15, Math.random()*40-20);
+                p.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
+                p.velocity = Math.random() * 0.05 + 0.02;
+                p.rotSpeed = Math.random() * 0.02;
+                scene.add(p); petals.push(p);
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if(flame.visible) flame.scale.setScalar(1 + Math.sin(Date.now()*0.015)*0.15);
+            petals.forEach(p => { 
+                p.position.y -= p.velocity; 
+                p.rotation.x += p.rotSpeed;
+                if(p.position.y < -2) p.position.y = 25; 
+            });
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Обработка задувания
+        window.addEventListener('keydown', (e) => {
+            if(e.code === 'Space') {
+                flame.visible = false;
+                pointLight.intensity = 0.5;
+                document.getElementById('ui').innerHTML = "<h1 style='color: #ff69b4; font-size: 35px;'>Я ТЕБЯ ЛЮБЛЮ! ❤️</h1>";
+                spawnPetals();
+                controls.autoRotateSpeed = 2.5;
+            }
+        });
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    }
+</script>
+</body>
+</html>
