@@ -214,35 +214,24 @@
         }
         animate();
 
-// --- ЛОГИКА ЗАДУВАНИЯ (ДЛЯ ПК И ТЕЛЕФОНА) ---
-        function blowOutCandle() {
-            if (candleActive) { // Проверяем, что свеча еще горит
-                candleActive = false;
-                
-                // 1. Гасим пламя и свет
+        // Обработка задувания
+        window.addEventListener('keydown', (e) => {
+            if(e.code === 'Space') {
                 flame.visible = false;
                 pointLight.intensity = 0.5;
-
-                // 2. Меняем текст на экране
-                const ui = document.getElementById('ui');
-                ui.innerHTML = "<h1 style='color: #ff69b4; font-size: 30px; margin:0;'>ВИКА, Я ТЕБЯ ЛЮБЛЮ! ❤️</h1>";
-                
-                // 3. Запускаем спецэффекты
+                document.getElementById('ui').innerHTML = "<h1 style='color: #ff69b4; font-size: 35px;'>С ДНЕМ РОЖДЕНИЯ! ❤️</h1>";
                 spawnPetals();
                 controls.autoRotateSpeed = 2.5;
             }
-        }
-
-        // Слушатель для клавиатуры (ПК)
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') blowOutCandle();
         });
-
-        // Слушатель для касания (Телефон)
-        window.addEventListener('touchstart', () => {
-            blowOutCandle();
-        }, { passive: true });
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     }
+
 </script>
 </body>
 </html>
