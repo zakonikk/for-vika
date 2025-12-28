@@ -2,22 +2,21 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Для Тебя ❤️</title>
+    <title>Для Вики ❤️</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; }
         
-        /* Стили терминала */
         #terminal {
             position: absolute; width: 100%; height: 100%;
             background: black; color: white; padding: 40px;
             z-index: 200; display: flex; flex-direction: column;
-            box-sizing: border-box; font-size: 22px;
+            box-sizing: border-box; font-size: 20px;
             transition: opacity 1.5s ease-in-out;
         }
         
         #ui {
-            position: absolute; top: 5%; width: 100%; text-align: center;
-            color: white; font-size: 24px; text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+            position: absolute; top: 10%; width: 100%; text-align: center;
+            color: white; font-size: 20px; text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
             z-index: 10; display: none; pointer-events: none;
         }
         .hidden { opacity: 0; pointer-events: none; }
@@ -26,8 +25,7 @@
 <body>
 
 <div id="terminal"></div>
-
-<div id="ui">Нажми ПРОБЕЛ, чтобы задуть свечу</div>
+<div id="ui">Коснись экрана, чтобы задуть свечу</div>
 
 <script type="module">
     import * as THREE from 'https://cdn.skypack.dev/three@0.132.2';
@@ -35,15 +33,14 @@
 
     const term = document.getElementById('terminal');
     const messages = [
-        "> Вика",
+        "> vika",
         "> ...",
         "> сегодня твой день рождения",
         "> ...",
         "> поэтому я написал для тебя эту программу...",
-        "ЗАГРУЗКА [██████████████] 100%"
+        "ЗАГРУЗКА ЛЮБВИ [██████████████] 100%"
     ];
 
-    // 1. Функция печатной машинки
     async function typeText() {
         for (let msg of messages) {
             let p = document.createElement('p');
@@ -52,10 +49,8 @@
                 p.textContent += char;
                 await new Promise(r => setTimeout(r, 60));
             }
-            await new Promise(r => setTimeout(r, 1000));
+            await new Promise(r => setTimeout(r, 800));
         }
-        
-        // Плавно скрываем терминал
         term.classList.add('hidden');
         setTimeout(() => {
             term.style.display = 'none';
@@ -66,165 +61,145 @@
 
     typeText();
 
-    // 2. Основная 3D сцена
     function init3D() {
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
         const loader = new THREE.TextureLoader();
         loader.load('city.jpg', (tex) => { scene.background = tex; });
 
-        // Клетчатая текстура для скатерти
+        // Клетчатая скатерть
         const canvas = document.createElement('canvas');
-        canvas.width = 256; canvas.height = 256;
+        canvas.width = 128; canvas.height = 128;
         const ctx = canvas.getContext('2d');
-        for (let i = 0; i < 4; i++) {
-            for (let j = 0; j < 4; j++) {
-                ctx.fillStyle = (i + j) % 2 === 0 ? '#ffffff' : '#ff4d4d';
-                ctx.fillRect(i * 64, j * 64, 64, 64);
-            }
-        }
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,128,128);
+        ctx.fillStyle = '#ff4d4d'; ctx.fillRect(0,0,64,64); ctx.fillRect(64,64,64,64);
         const checkerTexture = new THREE.CanvasTexture(canvas);
         checkerTexture.wrapS = checkerTexture.wrapT = THREE.RepeatWrapping;
-        checkerTexture.repeat.set(8, 3);
+        checkerTexture.repeat.set(10, 4);
 
         const ambient = new THREE.AmbientLight(0xffffff, 0.8);
         scene.add(ambient);
-        const pointLight = new THREE.PointLight(0xffaa00, 2.5, 60);
-        pointLight.position.set(0, 10, 0);
+        const pointLight = new THREE.PointLight(0xffaa00, 2.5, 50);
+        pointLight.position.set(0, 8, 0);
         scene.add(pointLight);
 
-        // --- СТОЛ ---
+        // Стол
         const tableGroup = new THREE.Group();
-        const tableMat = new THREE.MeshStandardMaterial({ color: 0x4b2d0b });
-        const tableTop = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 0.4, 64), tableMat);
-        
-        const cloth = new THREE.Mesh(
-            new THREE.CylinderGeometry(9.1, 9.6, 4, 64, 1, true),
-            new THREE.MeshStandardMaterial({ map: checkerTexture, side: THREE.DoubleSide })
-        );
-        cloth.position.y = -2;
-        
-        const leg = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.8, 12, 32), tableMat);
-        leg.position.y = -6.2;
-        tableGroup.add(tableTop, cloth, leg);
+        const tableTop = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 0.4, 40), new THREE.MeshStandardMaterial({color: 0x4b2d0b}));
+        const cloth = new THREE.Mesh(new THREE.CylinderGeometry(9.1, 9.4, 3, 40, 1, true), new THREE.MeshStandardMaterial({map: checkerTexture, side: THREE.DoubleSide}));
+        cloth.position.y = -1.5;
+        tableGroup.add(tableTop, cloth);
         scene.add(tableGroup);
 
-        // --- ТОРТ ---
+        // --- ДЕТАЛИЗИРОВАННЫЙ ТОРТ ---
         const cakeGroup = new THREE.Group();
         cakeGroup.position.y = 0.2;
 
         function createTier(r, h, y, cakeCol, icingCol) {
             const g = new THREE.Group();
-            const base = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 40), new THREE.MeshStandardMaterial({color: cakeCol}));
-            base.position.y = y;
-            const icing = new THREE.Mesh(new THREE.CylinderGeometry(r + 0.05, r + 0.05, h * 0.2, 40), new THREE.MeshStandardMaterial({color: icingCol}));
-            icing.position.y = y + h/2;
-            g.add(base, icing);
-            return g;
+            const b = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 40), new THREE.MeshStandardMaterial({color: cakeCol}));
+            b.position.y = y;
+            const i = new THREE.Mesh(new THREE.CylinderGeometry(r + 0.05, r + 0.05, h * 0.2, 40), new THREE.MeshStandardMaterial({color: icingCol}));
+            i.position.y = y + h/2;
+            g.add(b, i); return g;
         }
 
+        // Три яруса
         cakeGroup.add(createTier(2.5, 1.2, 0.6, 0xfff5e1, 0xff69b4)); 
         cakeGroup.add(createTier(1.8, 1.0, 1.7, 0xffe4e1, 0xffffff)); 
         cakeGroup.add(createTier(1.2, 0.8, 2.6, 0xffffff, 0xff69b4)); 
 
-        // Декор торта
+        // Шоколадные палочки (вокруг нижнего яруса)
+        for(let i=0; i<30; i++) {
+            const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.3), new THREE.MeshStandardMaterial({color: 0x4b2d0b}));
+            const a = (i/30) * Math.PI * 2;
+            stick.position.set(Math.cos(a)*2.6, 0.6, Math.sin(a)*2.6);
+            cakeGroup.add(stick);
+        }
+
+        // Черника (на втором ярусе)
         for(let i=0; i<15; i++) {
             const berry = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), new THREE.MeshStandardMaterial({color: 0x191970}));
             const a = (i/15) * Math.PI * 2;
             berry.position.set(Math.cos(a)*1.6, 2.2, Math.sin(a)*1.6);
             cakeGroup.add(berry);
         }
-        for(let i=0; i<8; i++) {
-            const berry = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), new THREE.MeshStandardMaterial({color: 0xff0000}));
-            const a = (i/8) * Math.PI * 2;
-            berry.position.set(Math.cos(a)*1, 3.1, Math.sin(a)*1);
+
+        // Клубника (на самом верху)
+        for(let i=0; i<6; i++) {
+            const berry = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), new THREE.MeshStandardMaterial({color: 0xff0000}));
+            const a = (i/6) * Math.PI * 2;
+            berry.position.set(Math.cos(a)*0.8, 3.1, Math.sin(a)*0.8);
             cakeGroup.add(berry);
         }
-        for(let i=0; i<10; i++){
-            const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.2), new THREE.MeshStandardMaterial({color: 0x4b2d0b}));
-            const a = (i/10) * Math.PI * 2;
-            stick.position.set(Math.cos(a)*0.6, 3.4, Math.sin(a)*0.6);
-            stick.rotation.z = 0.3;
-            cakeGroup.add(stick);
+
+        // Золотая посыпка
+        for(let i=0; i<50; i++) {
+            const sprinkle = new THREE.Mesh(new THREE.SphereGeometry(0.04), new THREE.MeshStandardMaterial({color: 0xffd700}));
+            const a = Math.random() * Math.PI * 2;
+            const r = Math.random() * 2.4;
+            sprinkle.position.set(Math.cos(a)*r, 1.25, Math.sin(a)*r);
+            cakeGroup.add(sprinkle);
         }
-
+        
+        // Свеча и огонь
         const candle = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.8), new THREE.MeshStandardMaterial({color: 0x33ccff}));
-        candle.position.y = 3.5;
-        cakeGroup.add(candle);
-
+        candle.position.y = 3.5; cakeGroup.add(candle);
         const flame = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 12), new THREE.MeshBasicMaterial({color: 0xffaa00}));
-        flame.position.y = 4.0;
-        cakeGroup.add(flame);
+        flame.position.y = 4.0; cakeGroup.add(flame);
         scene.add(cakeGroup);
 
-        // --- ФОТО-РАМКИ ---
+        // Рамки с фото
         const photoFiles = ['image1.jpg', 'image2.jpg', 'image3.jpg', 'image4.jpg'];
         photoFiles.forEach((file, i) => {
-            const frameGroup = new THREE.Group();
-            const frame = new THREE.Mesh(new THREE.BoxGeometry(3.5, 4.8, 0.2), new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.7, roughness: 0.2 }));
-            const photo = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 4.5), new THREE.MeshStandardMaterial({ map: loader.load(file) }));
-            photo.position.z = 0.11;
-            frameGroup.add(frame, photo);
-
-            const angle = (i / 4) * Math.PI * 2;
-            const radius = 6.8; 
-            frameGroup.position.set(Math.cos(angle) * radius, 2.4, Math.sin(angle) * radius);
-            frameGroup.lookAt(0, 2.4, 0);
-            scene.add(frameGroup);
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(3.5, 4.8, 0.2), new THREE.MeshStandardMaterial({color: 0xffd700, metalness: 0.5}));
+            const photo = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 4.5), new THREE.MeshStandardMaterial({map: loader.load(file)}));
+            photo.position.z = 0.11; frame.add(photo);
+            const a = (i / 4) * Math.PI * 2;
+            frame.position.set(Math.cos(a) * 6.5, 2.4, Math.sin(a) * 6.5);
+            frame.lookAt(0, 2.4, 0); scene.add(frame);
         });
 
         camera.position.set(0, 10, 22);
         const controls = new OrbitControls(camera, renderer.domElement);
-        controls.target.set(0, 3, 0);
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.6;
+        controls.autoRotate = true; controls.autoRotateSpeed = 0.5;
         controls.enableDamping = true;
 
-        // --- ЛЕПЕСТКИ РОЗ ---
         const petals = [];
-        const petalGeo = new THREE.PlaneGeometry(0.3, 0.3);
-        const petalMat = new THREE.MeshStandardMaterial({color: 0xff0055, side: THREE.DoubleSide, transparent: true, opacity: 0.9});
-
         function spawnPetals() {
-            for(let i=0; i<150; i++) {
-                const p = new THREE.Mesh(petalGeo, petalMat);
-                p.position.set(Math.random()*40-20, Math.random()*25+15, Math.random()*40-20);
-                p.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
-                p.velocity = Math.random() * 0.05 + 0.02;
-                p.rotSpeed = Math.random() * 0.02;
-                scene.add(p); petals.push(p);
+            for(let i=0; i<120; i++) {
+                const p = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.3), new THREE.MeshStandardMaterial({color: 0xff0055, side: 2, transparent: true, opacity: 0.9}));
+                p.position.set(Math.random()*40-20, Math.random()*25+10, Math.random()*40-20);
+                p.velocity = Math.random() * 0.05 + 0.02; petals.push(p); scene.add(p);
             }
         }
 
+        let active = true;
+        function blowOut() {
+            if(!active) return;
+            active = false; flame.visible = false; pointLight.intensity = 0.5;
+            document.getElementById('ui').innerHTML = "<h1 style='color:#ff69b4; font-size:26px;'>ВИКА, С ДНЕМ РОЖДЕНИЯ! ❤️</h1>";
+            spawnPetals();
+            controls.autoRotateSpeed = 2.5;
+        }
+
+        window.addEventListener('pointerdown', blowOut);
+        window.addEventListener('keydown', (e) => { if(e.code === 'Space') blowOut(); });
+
         function animate() {
             requestAnimationFrame(animate);
-            if(flame.visible) flame.scale.setScalar(1 + Math.sin(Date.now()*0.015)*0.15);
-            petals.forEach(p => { 
-                p.position.y -= p.velocity; 
-                p.rotation.x += p.rotSpeed;
-                if(p.position.y < -2) p.position.y = 25; 
-            });
+            if(flame.visible) flame.scale.setScalar(1 + Math.sin(Date.now()*0.01)*0.1);
+            petals.forEach(p => { p.position.y -= p.velocity; if(p.position.y < -2) p.position.y = 25; });
             controls.update();
             renderer.render(scene, camera);
         }
         animate();
 
-        // Обработка задувания
-        window.addEventListener('keydown', (e) => {
-            if(e.code === 'Space') {
-                flame.visible = false;
-                pointLight.intensity = 0.5;
-                document.getElementById('ui').innerHTML = "<h1 style='color: #ff69b4; font-size: 35px;'>С ДНЕМ РОЖДЕНИЯ! ❤️</h1>";
-                spawnPetals();
-                controls.autoRotateSpeed = 2.5;
-            }
-        });
-        
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
@@ -232,6 +207,62 @@
         });
     }
 
+        // Рамки
+        const photoFiles = ['image1.jpg', 'image2.jpg', 'image3.jpg', 'image4.jpg'];
+        photoFiles.forEach((file, i) => {
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(3.5, 4.8, 0.2), new THREE.MeshStandardMaterial({color: 0xffd700}));
+            const photo = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 4.5), new THREE.MeshStandardMaterial({map: loader.load(file)}));
+            photo.position.z = 0.11; frame.add(photo);
+            const a = (i / 4) * Math.PI * 2;
+            frame.position.set(Math.cos(a) * 6.5, 2.4, Math.sin(a) * 6.5);
+            frame.lookAt(0, 2.4, 0); scene.add(frame);
+        });
+
+        camera.position.set(0, 10, 22);
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.autoRotate = true; controls.autoRotateSpeed = 0.5;
+        controls.enableDamping = true;
+
+        const petals = [];
+        function spawnPetals() {
+            for(let i=0; i<100; i++) {
+                const p = new THREE.Mesh(new THREE.PlaneGeometry(0.25, 0.25), new THREE.MeshStandardMaterial({color: 0xff0055, side: 2}));
+                p.position.set(Math.random()*40-20, Math.random()*20+10, Math.random()*40-20);
+                p.velocity = Math.random() * 0.04 + 0.02; petals.push(p); scene.add(p);
+            }
+        }
+
+        let active = true;
+        // ФУНКЦИЯ ТУШЕНИЯ
+        function blowOut() {
+            if(!active) return;
+            active = false;
+            flame.visible = false;
+            pointLight.intensity = 0.5;
+            document.getElementById('ui').innerHTML = "<h1 style='color:#ff69b4; font-size:26px;'>ВИКА, С ДНЕМ РОЖДЕНИЯ! ❤️</h1>";
+            spawnPetals();
+            controls.autoRotateSpeed = 2.5;
+        }
+
+        // Обработка клика/тапа и пробела
+        window.addEventListener('pointerdown', blowOut);
+        window.addEventListener('keydown', (e) => { if(e.code === 'Space') blowOut(); });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if(flame.visible) flame.scale.setScalar(1 + Math.sin(Date.now()*0.01)*0.1);
+            petals.forEach(p => { p.position.y -= p.velocity; if(p.position.y < -2) p.position.y = 20; });
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    
 </script>
 </body>
 </html>
